@@ -21,7 +21,7 @@ struct Args {
 struct NatsClientOpts {
     /// NATS Server address to connect to listen for secrets requests.
     #[arg(long = "nats-address", env = "SV_NATS_ADDRESS")]
-    pub address: String,
+    pub nats_address: String,
 
     /// JWT for authenticating the NATS connection
     #[arg(long = "nats-jwt", env = "SV_NATS_JWT", requires = "seed")]
@@ -42,7 +42,7 @@ impl NatsClientOpts {
                 async move { kp.sign(&nonce).map_err(async_nats::AuthError::new) }
             });
         }
-        Ok(async_nats::connect_with_options(self.address, options).await?)
+        Ok(async_nats::connect_with_options(self.nats_address, options).await?)
     }
 }
 
@@ -81,7 +81,7 @@ struct SecretsServerOpts {
 struct VaultOpts {
     /// Vault server address to connect to.
     #[arg(long = "vault-address", env = "SV_VAULT_ADDRESS")]
-    pub address: String,
+    pub vault_address: String,
 
     /// Path where the JWT auth method is mounted
     #[arg(long = "vault-auth-method", env = "SV_VAULT_AUTH_METHOD")]
@@ -110,7 +110,7 @@ struct VaultOpts {
 impl From<VaultOpts> for VaultConfig {
     fn from(opts: VaultOpts) -> Self {
         Self {
-            address: opts.address,
+            address: opts.vault_address,
             auth_mount: opts.auth_method_path.trim_matches('/').to_owned(),
             jwt_audience: opts.jwt_audience,
             default_secret_engine: opts.default_secret_engine.trim_matches('/').to_owned(),
