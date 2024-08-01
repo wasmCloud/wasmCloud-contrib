@@ -4,7 +4,7 @@ use std::{collections::HashMap, net::SocketAddrV4};
 use anyhow::Result;
 use nkeys::{KeyPair, XKey};
 use secrets_vault::{SubjectMapper, VaultConfig, VaultSecretsBackend};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 use testcontainers::{
     core::{Host as TestHost, WaitFor},
@@ -29,11 +29,6 @@ const SECRETS_SECRET_NAME: &str = "test-secret";
 const NATS_SERVER_PORT: u16 = 4222;
 const VAULT_SERVER_PORT: u16 = 8200;
 const VAULT_ROOT_TOKEN_ID: &str = "vault-root-token-id";
-
-#[derive(Serialize, Deserialize)]
-struct StoredSecret {
-    value: String,
-}
 
 #[tokio::test]
 async fn test_server_xkey() -> Result<()> {
@@ -148,20 +143,17 @@ async fn test_get() -> Result<()> {
 
     configure_vault_jwt_auth(&vault_client, resolve_jwks_url(jwks_port)).await?;
 
-    let stored_secret = StoredSecret {
-        value: "this-is-a-secret".to_string(),
-    };
+    let secret_key = "secret-key";
+    let stored_secret = HashMap::from([(secret_key, "this-is-a-secret")]);
+
     store_secret_in_engine_at_path(
         &vault_client,
-        &json!(stored_secret),
+        stored_secret.clone(),
         SECRETS_ENGINE_MOUNT,
         SECRETS_SECRET_NAME,
     )
     .await?;
 
-    //let nats_wrpc_client = async_nats::connect(nats_address)
-    //.await
-    //.expect("should be able to create a connection to nats");
     let wsc = wasmcloud_secrets_client::Client::new("vault-test", "wasmcloud.secrets", nats_client)
         .await
         .expect("should be able to instantiate wasmcloud-secrets-client");
@@ -182,7 +174,8 @@ async fn test_get() -> Result<()> {
 
     let request_xkey = XKey::new();
     let secret_request = SecretRequest {
-        name: SECRETS_SECRET_NAME.to_string(),
+        key: SECRETS_SECRET_NAME.to_string(),
+        field: Some(secret_key.to_owned()),
         version: None,
         context: SecretsContext {
             entity_jwt: entity_claims.encode(&claims_signer).unwrap(),
@@ -190,8 +183,10 @@ async fn test_get() -> Result<()> {
             application: Application {
                 name: Some("test-app".to_string()),
                 policy: json!({
-                    "role_name": SECRETS_ROLE_NAME,
-                    "namespace": "foobar"
+                    "type": "properties.secret.wasmcloud.dev/v1alpha1",
+                    "properties": {
+                        "roleName": SECRETS_ROLE_NAME,
+                    }
                 })
                 .to_string(),
             },
@@ -202,11 +197,10 @@ async fn test_get() -> Result<()> {
         .await
         .expect("should have gotten a secret");
 
-    let actual: StoredSecret = serde_json::from_str(secret.string_secret.unwrap().as_str())
-        .expect("should have deserialized secret.string_secret into StoredSecret");
-    let expected = stored_secret.value;
+    let actual = secret.string_secret.unwrap_or_default();
+    let expected = stored_secret.get(secret_key).unwrap();
 
-    assert_eq!(actual.value, expected);
+    assert_eq!(&actual, expected);
 
     Ok(())
 }
@@ -316,7 +310,7 @@ async fn configure_vault_jwt_auth(vault_client: &VaultClient, jwks_url: String) 
 
 async fn store_secret_in_engine_at_path(
     vault_client: &VaultClient,
-    value: &impl Serialize,
+    value: impl Serialize,
     mount: &str,
     path: &str,
 ) -> Result<()> {

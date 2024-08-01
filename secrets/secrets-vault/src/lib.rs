@@ -6,7 +6,7 @@ use jsonwebtoken::{get_current_timestamp, Algorithm, EncodingKey};
 use nkeys::{KeyPair, XKey};
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddrV4, result::Result as StdResult, str::FromStr};
-use tracing::debug;
+use tracing::info;
 use vaultrs::{
     api::kv2::{requests::ReadSecretRequest, responses::ReadSecretResponse},
     client::{Client, VaultClient, VaultClientSettingsBuilder},
@@ -98,8 +98,17 @@ impl TryFrom<&SecretRequest> for VaultPolicy {
     type Error = anyhow::Error;
 
     fn try_from(request: &SecretRequest) -> StdResult<Self, Self::Error> {
-        serde_json::from_str::<Self>(&request.context.application.policy)
-            .map_err(|e| anyhow!("failed to deserialize policy: {}", e.to_string()))
+        let policy = serde_json::from_str::<serde_json::Value>(&request.context.application.policy)
+            .map_err(|e| anyhow!("failed to extract policy: {}", e.to_string()))?;
+        let properties = policy
+            .get("properties")
+            .ok_or_else(|| anyhow!("failed to extract policy properties"))?;
+        serde_json::from_str::<Self>(&properties.to_string()).map_err(|e| {
+            anyhow!(
+                "failed to deserialize vault policy from properties: {}",
+                e.to_string()
+            )
+        })
     }
 }
 
@@ -118,7 +127,8 @@ struct VaultAuthClaims {
 }
 
 struct VaultSecretRef {
-    secret_path: String,
+    path: String,
+    field: Option<String>,
     version: Option<u64>,
 }
 
@@ -126,18 +136,18 @@ impl TryFrom<&SecretRequest> for VaultSecretRef {
     type Error = anyhow::Error;
 
     fn try_from(request: &SecretRequest) -> StdResult<Self, Self::Error> {
-        let secret_path = request.name.clone();
-        let version = if let Some(version) = request.version.clone() {
-            version
-                .parse::<u64>()
-                .map(Some)
-                .map_err(|_| anyhow!("unable to convert requested version to integer"))?
-        } else {
-            None
-        };
+        let version = request
+            .version
+            .to_owned()
+            .map(|v| {
+                v.parse::<u64>()
+                    .map_err(|_| anyhow!("unable to convert requested version to integer"))
+            })
+            .transpose()?;
 
         Ok(Self {
-            secret_path,
+            path: request.key.to_owned(),
+            field: request.field.to_owned(),
             version,
         })
     }
@@ -225,7 +235,7 @@ impl VaultSecretsBackend {
     }
 
     async fn start_nats_subscriber(&self) -> Result<()> {
-        debug!(
+        info!(
             "Subscribing to messages addressed to {} under queue group {}",
             self.subject_mapper.secrets_wildcard_subject(),
             self.subject_mapper.queue_group_name(),
@@ -323,20 +333,30 @@ impl VaultSecretsBackend {
         let secret_ref = VaultSecretRef::try_from(&secret_request)
             .map_err(|e| GetSecretError::Other(e.to_string()))?;
 
-        let secret = Self::fetch_secret(
+        let response = Self::fetch_secret(
             &vault_client,
             &policy
                 .secret_engine_path
                 .unwrap_or_else(|| self.vault_config.default_secret_engine.to_owned()),
-            secret_ref,
+            &secret_ref,
         )
         .await?;
 
+        let secret_version = response.metadata.version.to_string();
+        let secret = if let Some(field) = secret_ref.field {
+            response
+                .data
+                .get(field)
+                .map(|v| v.as_str().unwrap())
+                .map(ToString::to_string)
+        } else {
+            Some(response.data.to_string())
+        };
+
         let secret_response = SecretResponse {
             secret: Some(Secret {
-                name: secret_request.name,
-                version: secret.metadata.version.to_string(),
-                string_secret: Some(secret.data.to_string()),
+                version: secret_version,
+                string_secret: secret,
                 binary_secret: None,
             }),
             error: None,
@@ -480,11 +500,11 @@ impl VaultSecretsBackend {
     async fn fetch_secret(
         client: &VaultClient,
         mount: &str,
-        secret_ref: VaultSecretRef,
+        secret_ref: &VaultSecretRef,
     ) -> Result<ReadSecretResponse, GetSecretError> {
         let request = ReadSecretRequest::builder()
             .mount(mount)
-            .path(secret_ref.secret_path)
+            .path(&secret_ref.path)
             .version(secret_ref.version)
             .build()
             .unwrap();
