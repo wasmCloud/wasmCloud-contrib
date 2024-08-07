@@ -1,0 +1,1 @@
+{ "import": [{ "path": "wasmcloud/example/ffi", "alias": "ffi" }] }

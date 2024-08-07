@@ -1,0 +1,9 @@
+{
+  "import": [
+    { "path": "wasmcloud/example/ffi", "alias": "ffi" },
+    {
+      "path": "wasmcloud/example/interface/imports/wasi/io/poll",
+      "alias": "poll"
+    }
+  ]
+}

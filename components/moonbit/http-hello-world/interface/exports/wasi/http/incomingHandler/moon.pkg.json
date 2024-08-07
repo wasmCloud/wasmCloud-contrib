@@ -1,0 +1,9 @@
+{
+  "import": [
+    {
+      "path": "wasmcloud/example/interface/imports/wasi/http/types",
+      "alias": "types"
+    },
+    "wasmcloud/example/interface/imports/wasi/io/streams"
+  ]
+}

@@ -1,0 +1,11 @@
+name = "http-hello-world"
+version = "0.1.0"
+language = "moonbit"
+type = "component"
+
+[component]
+wit_world = "hello"
+wasm_target = "wasm32-wasi-preview2"
+build_command = "./build.sh"
+build_artifact = "target/wasm/release/build/gen/gen.wasm"
+destination = "build/gen.wasm"

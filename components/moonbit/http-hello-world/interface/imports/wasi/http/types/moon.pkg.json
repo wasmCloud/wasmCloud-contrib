@@ -1,0 +1,17 @@
+{
+  "import": [
+    { "path": "wasmcloud/example/ffi", "alias": "ffi" },
+    {
+      "path": "wasmcloud/example/interface/imports/wasi/io/error",
+      "alias": "error"
+    },
+    {
+      "path": "wasmcloud/example/interface/imports/wasi/io/poll",
+      "alias": "poll"
+    },
+    {
+      "path": "wasmcloud/example/interface/imports/wasi/io/streams",
+      "alias": "streams"
+    }
+  ]
+}
