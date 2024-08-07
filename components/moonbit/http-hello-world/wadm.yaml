@@ -1,0 +1,31 @@
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: moonbit-http
+  annotations:
+    description: HTTP hello world demo with a component written in Moonbit
+    version: v0.0.1
+  labels:
+    generated-by: wit2wadm
+spec:
+  components:
+    - name: moonbit-http
+      type: component
+      properties:
+        image: file://./build/gen.wasm
+      traits:
+        - type: spreadscaler
+          properties:
+            instances: 100
+    - name: wasi:http-source
+      type: capability
+      properties:
+        image: ghcr.io/wasmcloud/http-server:canary
+      traits:
+        - type: link
+          properties:
+            target: moonbit-http
+            namespace: wasi
+            package: http
+            interfaces:
+              - incoming-handler
