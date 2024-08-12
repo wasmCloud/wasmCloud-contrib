@@ -1,0 +1,9 @@
+resources:
+- wadm.yaml
+
+configurations:
+- wadm-image-transformer.yaml
+# images:
+#  - name: file://./build/http_hello_world_s.wasm
+#    newName: ghcr.io/wasmcloud/components/http-hello-world-rust
+#    newTag: 0.1.0

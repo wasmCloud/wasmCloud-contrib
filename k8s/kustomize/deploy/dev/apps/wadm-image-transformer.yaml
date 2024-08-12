@@ -1,0 +1,4 @@
+# https://github.com/kubernetes-sigs/kustomize/blob/master/examples/transformerconfigs/images/README.md
+images:
+  - path: spec.components.name.properties.image
+    kind: Application

@@ -1,0 +1,7 @@
+# configure kind cluster, these are operations that will occur before
+# a cluster is typically enabled for app team use
+
+resources:
+- ingress-controller.yaml
+# nats chart requires a default service account in place, go ahead and create one
+- serviceaccount.yaml

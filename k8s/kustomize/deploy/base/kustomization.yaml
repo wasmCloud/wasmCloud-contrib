@@ -1,0 +1,5 @@
+resources:
+- charts-rendered/wadm.yaml
+- charts-rendered/wasmcloud-operator.yaml
+# pre-req:
+# - charts-rendered/nats-rendered.yaml
