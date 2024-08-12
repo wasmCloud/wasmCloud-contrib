@@ -1,0 +1,5 @@
+resources:
+- ../base
+- ingress.yaml
+
+# don't forget to apply wasmcloud-host-config after operator is running!

@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rust-hello-world
+spec:
+  ingressClassName: "nginx"
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rust-hello-world
+            port:
+              number: 8080
