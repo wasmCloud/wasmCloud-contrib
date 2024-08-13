@@ -1,0 +1,18 @@
+# $HOME/.config/systemd/user/nats-leaf.service
+[Unit]
+Description=NATS Leaf Server
+After=network-online.target systemd-timesyncd.service
+
+[Service]
+PrivateTmp=true
+Type=simple
+Environment=NATS_CONFIG=/etc/wasmcloud/nats-leaf.conf
+ExecStart=/usr/local/bin/nats-server -js --pid /tmp/nats-leaf.pid --config ${NATS_CONFIG}
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s SIGINT $MAINPID
+# The nats-server uses SIGUSR2 to trigger using Lame Duck Mode (LDM) shutdown
+KillSignal=SIGUSR2
+# You might want to adjust TimeoutStopSec too.
+
+[Install]
+WantedBy=multi-user.target
