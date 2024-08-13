@@ -1,0 +1,14 @@
+apiVersion: k8s.wasmcloud.dev/v1alpha1
+kind: WasmCloudHostConfig
+metadata:
+  name: wasmcloud
+  namespace: default
+spec:
+  # The number of wasmCloud host pods to run
+  hostReplicas: 3
+  # The lattice to connect the hosts to
+  lattice: default
+  # The address to connect to nats
+  natsAddress: nats://nats.default.svc.cluster.local
+  # Which wasmCloud version to use
+  version: 1.1.1

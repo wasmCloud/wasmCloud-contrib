@@ -1,0 +1,6 @@
+wadm:
+  image:
+    tag: v0.13.0
+  config:
+    nats:
+      server: "nats.default.svc.cluster.local:4222"
