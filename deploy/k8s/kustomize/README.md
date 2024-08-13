@@ -28,26 +28,23 @@ This script runs through the following steps:
 
 ### How to curl without an Ingress setup
 
-Steps to call the component within the wasmCloud host container where the app and `httpserver` provider are running:
+Call the component (without an Ingress) by port-forwarding the
+wasmCloud host pod where the HTTP Server provider is listening on port 8080.
 
 ```bash
 WASMCLOUD_HOST_POD=$(kubectl get pods -o jsonpath="{.items[*].metadata.name}" -l app.kubernetes.io/instance=wasmcloud-host)
+kubectl port-forward pods/$WASMCLOUD_HOST_POD 8080
+```
 
-kubectl exec -it pod/$WASMCLOUD_HOST_POD -c wasmcloud-host -- bash
+Call the component:
 
-# install curl
-apt-get update && apt-get install -y curl lsof procps
-
+```bash
 curl http://localhost:8080
 ```
 
-### Test out the deployment
-
-```bash
-curl localhost/rust
-```
-
 ### Using wash locally
+
+In order to run wash locally, we need a connection to NATS.
 
 ```bash
 kubectl port-forward svc/nats 4222:4222 4223:4223
@@ -69,7 +66,8 @@ wash get inventory
   hostcore.arch                                              aarch64
   kubernetes                                                 true
 
-  No components found
+  Component ID                                               Name                   Max count
+  rust_hello_world-http_component                            http-hello-world       1
 
   Provider ID                                                Name
   path_based_routing-httpserver                              http-server-provider
