@@ -39,7 +39,7 @@ kubectl rollout status deploy -l app.kubernetes.io/name=wasmcloud-operator
 kubectl wait --for condition=available apiservices.apiregistration.k8s.io v1beta1.core.oam.dev
 
 # Configure wasmCloud host
-kubectl apply -f ./deploy/dev/wasmcloud-host-config.yaml
+kustomize build ./deploy/dev/hosts | kubectl apply -f -
 kubectl wait --for condition=established --timeout=60s crd/wasmcloudhostconfigs.k8s.wasmcloud.dev
 
 echo "Validate wadm deployment"
@@ -54,8 +54,5 @@ kustomize build ./deploy/dev/apps | kubectl apply -f -
 # Call through Ingress
 ##############################
 # todo wait for http service
-curl localhost/rust
-curl localhost/go | grep "Hello from Go!"
-
-# cleanup
-# kind delete cluster
+# curl localhost/rust
+# curl localhost/go | grep "Hello from Go!"

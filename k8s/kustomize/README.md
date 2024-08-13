@@ -26,11 +26,25 @@ This script runs through the following steps:
 4. Build and apply the Kubernetes manifests using `kustomize` with Helm enabled, using the configuration located at `./deploy/dev`.
 5. Apply the wasmCloud host configuration located at `./deploy/dev/wasmcloud-host-config.yaml`.
 
+### How to curl without an Ingress setup
+
+Steps to call the component within the wasmCloud host container where the app and `httpserver` provider are running:
+
+```bash
+WASMCLOUD_HOST_POD=$(kubectl get pods -o jsonpath="{.items[*].metadata.name}" -l app.kubernetes.io/instance=wasmcloud-host)
+
+kubectl exec -it pod/$WASMCLOUD_HOST_POD -c wasmcloud-host -- bash
+
+# install curl
+apt-get update && apt-get install -y curl lsof procps
+
+curl http://localhost:8080
+```
+
 ### Test out the deployment
 
 ```bash
 curl localhost/rust
-curl localhost/go
 ```
 
 ### Using wash locally

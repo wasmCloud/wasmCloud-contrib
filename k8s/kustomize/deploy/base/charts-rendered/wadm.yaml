@@ -39,7 +39,7 @@ spec:
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
-          image: "ghcr.io/wasmcloud/wadm:v0.12.2"
+          image: "ghcr.io/wasmcloud/wadm:v0.13.0"
           imagePullPolicy: IfNotPresent
           env:
             - name: WADM_NATS_SERVER

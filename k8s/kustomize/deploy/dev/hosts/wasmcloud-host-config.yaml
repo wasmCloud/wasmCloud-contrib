@@ -4,6 +4,8 @@ metadata:
   name: wasmcloud-host
 spec:
   lattice: default
-  version: "1.1.1"
+  # version: "1.1.1"
+  version: "1.0.4"
   hostLabels:
     cluster-type: kind
+  # registryCredentialsSecret: "regcred"
