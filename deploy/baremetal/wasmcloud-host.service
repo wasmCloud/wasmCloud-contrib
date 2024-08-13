@@ -1,0 +1,17 @@
+# $HOME/.config/systemd/user/wasmcloud-host.service
+[Unit]
+Description=wasmCloud Host
+Documentation=https://wasmcloud.com/docs/
+After=nats-leaf.service network-online.target
+Wants=network-online.target
+Requires=nats-leaf.service
+
+[Service]
+EnvironmentFile=/etc/wasmcloud/wasmcloud-host.env
+ExecStart=/usr/local/bin/wasmcloud
+Restart=always
+StartLimitInterval=0
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
