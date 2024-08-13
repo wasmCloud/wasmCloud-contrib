@@ -7,8 +7,8 @@ spec:
   rules:
   - http:
       paths:
-      - path: /
-        pathType: Prefix
+      - path: /rust
+        pathType: Exact
         backend:
           service:
             name: rust-hello-world
