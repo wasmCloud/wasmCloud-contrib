@@ -3,3 +3,17 @@ resources:
 - charts-rendered/wasmcloud-operator.yaml
 # pre-req:
 # - charts-rendered/nats-rendered.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+# To get your own docker config json, create a secret:
+# kubectl create secret docker-registry regcred --docker-server="myprivatereg" --docker-username=user --docker-password="password" --docker-email="me@me.com"
+# Then get the secret in json format:
+# kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode
+# Then use the output in the secretGenerator below
+# secretGenerator:
+# - name: regcred
+#   type: kubernetes.io/dockerconfigjson
+#   literals: 
+#   - .dockerconfigjson={"auths":{"myprivatereg":{"username":"user","password":"password","email":"me@me.com","auth":"base64encodedstring"}}}
