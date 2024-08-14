@@ -50,9 +50,7 @@ kubectl rollout status deploy -l app.kubernetes.io/instance=wadm
 ##############################
 kustomize build ./deploy/dev/apps | kubectl apply -f -
 
-##############################
-# Call through Ingress
-##############################
-# todo wait for http service
-# curl localhost/rust
-# curl localhost/go | grep "Hello from Go!"
+# wait for http service
+kubectl wait --for=jsonpath='{.status.loadBalancer.ingress}' ing/rust-hello-world
+
+curl localhost/rust
