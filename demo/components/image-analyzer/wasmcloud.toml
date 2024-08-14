@@ -1,0 +1,8 @@
+name = "image-analyzer"
+version = "0.1.0"
+language = "rust"
+type = "component"
+
+[component]
+wit_world = "image-analyzer"
+wasm_target = "wasm32-wasi-preview2"

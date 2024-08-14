@@ -1,0 +1,52 @@
+package wasmcloud:task-manager;
+
+interface types {
+  record operation-error {
+    message: string
+  }
+
+  record operation {
+    id: string,
+    category: string,
+    payload: string,
+    created-at: string,
+    completed-at:  option<string>,
+    failure: option<string>,
+    %result: option<string>,
+  }
+}
+
+interface tracker {
+  use types.{operation, operation-error};
+
+  start: func(category: string, payload: string) -> result<string, operation-error>;
+
+  get: func(
+    id: string
+  ) -> result<operation, operation-error>;
+
+  complete: func(
+    id: string,
+    outcome: string,
+  ) -> result<_, operation-error>;
+
+  fail: func(
+    id: string,
+    outcome: string,
+  ) -> result<_, operation-error>;
+
+  %list: func(
+    filter: option<string>
+  ) -> result<list<operation>, operation-error>;
+
+  delete: func(
+    id: string
+  ) -> result<_, operation-error>;
+}
+
+world task-manager {
+  import wasi:logging/logging;
+  import wasmcloud:postgres/query@0.1.0-draft;
+  import wasmcloud:postgres/prepared@0.1.0-draft;
+  export tracker;
+}

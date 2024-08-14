@@ -1,0 +1,8 @@
+name = "image-processor"
+language = "rust"
+type = "component"
+version = "0.1.0"
+
+[component]
+wit_world = "image-processor"
+wasm_target = "wasm32-wasi-preview2"

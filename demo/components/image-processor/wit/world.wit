@@ -1,0 +1,14 @@
+package wasmcloud:image-processor;
+
+interface resizer {
+  use wasi:io/streams@0.2.0.{output-stream};
+  resize: func(body: list<u8>, width: u32, height: u32) -> result<string,string>;
+  serve: func(asset: string) -> result<list<u8>,string>;
+}
+
+world image-processor {
+  import wasi:logging/logging;
+  import wasi:blobstore/blobstore@0.2.0-draft;
+  import wasmcloud:task-manager/tracker;
+  export resizer;
+}

@@ -1,0 +1,32 @@
+<html>
+  <head>
+    <title>Upload an Image</title>
+  </head>
+  <body>
+    <form action="/api/process" method="post" enctype="multipart/form-data">
+      <input type="file" name="image" />
+      <input type="submit" />
+    </form>
+
+    <hr />
+    <h1>Tasks</h1>
+    <pre id="tasks"></pre>
+  </body>
+
+  <script>
+    let refreshTasks = async function () {
+      try {
+        const response = await fetch("/api/tasks");
+        if (!response.ok) {
+          throw new Error(`Response status: ${response.status}`);
+        }
+
+        document.getElementById("tasks").innerHTML = await response.text();
+      } catch (error) {
+        console.error(error.message);
+      }
+    };
+    setInterval(refreshTasks, 5000);
+    refreshTasks();
+  </script>
+</html>

@@ -1,0 +1,9 @@
+package wasmcloud:http-kubernetes;
+
+world server {
+  import wrpc:http/incoming-handler@0.1.0;
+  import wasi:blobstore/blobstore@0.2.0-draft;
+  import wasmcloud:task-manager/tracker;
+  import wasmcloud:image-processor/resizer;
+  import wasmcloud:image-analyzer/analyzer;
+}

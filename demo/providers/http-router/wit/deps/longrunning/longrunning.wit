@@ -1,0 +1,64 @@
+interface types {
+
+  record error {
+    message: option<string>
+  }
+
+  variant operation-result {
+    queued,
+    error(option<error>),
+    cancelled,
+    // TODO this is normally a protobuf.Any type, which could be literally anything. How should this be represented in wit?
+    response(string)
+  }
+
+  record operation {
+    id: string,
+    payload: string,
+    done: bool,
+    %result: option<operation-result>,
+  }
+}
+
+interface client {
+  //use wasi:io/streams@0.2.0.{input-stream};
+  use types.{operation, error};
+
+  handle: func(
+    operation: operation,
+  ) -> result<operation, error>;
+}
+
+interface service {
+  use wasi:clocks/monotonic-clock@0.2.0.{duration};
+  use wasi:io/streams@0.2.0.{pollable};
+  use types.{operation, operation-result, error};
+
+  start: func(payload: string) -> result<operation, error>;
+
+  get: func(
+    id: string
+  ) -> result<operation, error>;
+
+  update: func(
+    id: string,
+    outcome: operation-result
+  ) -> result<_, error>;
+
+  %list: func(
+    filter: option<string>
+  ) -> result<list<operation>, error>;
+
+  delete: func(
+    id: string
+  ) -> result<_, error>;
+
+  cancel: func(
+    id: string
+  ) -> result<_, error>;
+
+  wait: func(
+    id: string,
+    duration: option<duration>
+  ) -> pollable;
+}

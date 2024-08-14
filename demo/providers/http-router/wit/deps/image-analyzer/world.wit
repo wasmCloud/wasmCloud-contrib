@@ -1,0 +1,13 @@
+package wasmcloud:image-analyzer;
+
+interface analyzer {
+  is-animal: func(image: list<u8>) -> result<bool,string>;
+}
+
+world image-analyzer {
+  import wasi:logging/logging;
+  import wasi:http/outgoing-handler@0.2.0;
+  import wasmcloud:task-manager/tracker;
+
+  export analyzer;
+}

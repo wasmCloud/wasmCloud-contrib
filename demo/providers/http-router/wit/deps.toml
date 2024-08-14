@@ -1,0 +1,5 @@
+wrpc-http = "https://github.com/wrpc/http/archive/refs/tags/v0.1.0.tar.gz"
+task-manager = "../../../components/task-manager/wit"
+image-processor = "../../../components/image-processor/wit"
+image-analyzer = "../../../components/image-analyzer/wit"
+blobstore = "../../../../../wasmcloud/crates/runtime/wit/deps/blobstore"

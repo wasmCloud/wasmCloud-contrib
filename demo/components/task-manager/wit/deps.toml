@@ -1,0 +1,3 @@
+wrpc-http = "https://github.com/wrpc/http/archive/refs/tags/v0.1.0.tar.gz"
+logging = "https://github.com/WebAssembly/wasi-logging/archive/main.tar.gz"
+postgres = "https://github.com/wasmCloud/wasmCloud/releases/download/wit-wasmcloud-postgres-v0.1.0-draft/wit-wasmcloud-postgres-0.1.0-draft.tar.gz"
