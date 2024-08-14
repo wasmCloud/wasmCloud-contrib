@@ -42,6 +42,18 @@ Call the component:
 curl http://localhost:8080
 ```
 
+### How to curl with Ingress
+
+* Configure the kind [cluster](./deploy/kind/cluster.yaml) to map container ports to `80`
+* Install an ingress controller. For kind we deploy ingress-nginx's kind [deploy](https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml) at [./deploy/kind/kustomization.yaml](./deploy/kind/kustomization.yaml)
+* Create an `Ingress` for our app at [ingress.yaml](deploy/k8s/kustomize/deploy/dev/ingress.yaml)
+* From your local box, call the endpoint mapped to the path defined in the `Ingress`
+
+```bash
+curl localhost/rust
+Hello from Rust!
+```
+
 ### Using wash locally
 
 In order to run wash locally, we need a connection to NATS.
