@@ -16,11 +16,11 @@ import (
 	utf8 "unicode/utf8"
 )
 
-func Resize(ctx__ context.Context, wrpc__ wrpc.Invoker, body []uint8, width uint32, height uint32) (r0__ *wrpc.Result[string, string], close__ func() error, err__ error) {
-	if err__ = wrpc__.Invoke(ctx__, "wasmcloud:image-processor/resizer", "resize", func(w__ wrpc.IndexWriter, r__ wrpc.IndexReadCloser) error {
+func Upload(ctx__ context.Context, wrpc__ wrpc.Invoker, body []uint8) (r0__ *wrpc.Result[string, string], close__ func() error, err__ error) {
+	if err__ = wrpc__.Invoke(ctx__, "wasmcloud:image-processor/resizer", "upload", func(w__ wrpc.IndexWriter, r__ wrpc.IndexReadCloser) error {
 		close__ = r__.Close
 		var buf__ bytes.Buffer
-		writes__ := make(map[uint32]func(wrpc.IndexWriter) error, 3)
+		writes__ := make(map[uint32]func(wrpc.IndexWriter) error, 1)
 		write0__, err__ := func(v []uint8, w interface {
 			io.ByteWriter
 			io.Writer
@@ -82,6 +82,147 @@ func Resize(ctx__ context.Context, wrpc__ wrpc.Invoker, body []uint8, width uint
 		}(body, &buf__)
 		if err__ != nil {
 			return fmt.Errorf("failed to write `body` parameter: %w", err__)
+		}
+		if write0__ != nil {
+			writes__[0] = write0__
+		}
+		_, err__ = w__.Write(buf__.Bytes())
+		if err__ != nil {
+			return fmt.Errorf("failed to write parameters: %w", err__)
+		}
+		r0__, err__ = func(r wrpc.IndexReader, path ...uint32) (*wrpc.Result[string, string], error) {
+			slog.Debug("reading result status byte")
+			status, err := r.ReadByte()
+			if err != nil {
+				return nil, fmt.Errorf("failed to read result status byte: %w", err)
+			}
+			switch status {
+			case 0:
+				slog.Debug("reading `result::ok` payload")
+				v, err := func(r interface {
+					io.ByteReader
+					io.Reader
+				}) (string, error) {
+					var x uint32
+					var s uint8
+					for i := 0; i < 5; i++ {
+						slog.Debug("reading string length byte", "i", i)
+						b, err := r.ReadByte()
+						if err != nil {
+							if i > 0 && err == io.EOF {
+								err = io.ErrUnexpectedEOF
+							}
+							return "", fmt.Errorf("failed to read string length byte: %w", err)
+						}
+						if s == 28 && b > 0x0f {
+							return "", errors.New("string length overflows a 32-bit integer")
+						}
+						if b < 0x80 {
+							x = x | uint32(b)<<s
+							buf := make([]byte, x)
+							slog.Debug("reading string bytes", "len", x)
+							_, err = r.Read(buf)
+							if err != nil {
+								return "", fmt.Errorf("failed to read string bytes: %w", err)
+							}
+							if !utf8.Valid(buf) {
+								return string(buf), errors.New("string is not valid UTF-8")
+							}
+							return string(buf), nil
+						}
+						x |= uint32(b&0x7f) << s
+						s += 7
+					}
+					return "", errors.New("string length overflows a 32-bit integer")
+				}(r)
+				if err != nil {
+					return nil, fmt.Errorf("failed to read `result::ok` value: %w", err)
+				}
+				return &wrpc.Result[string, string]{Ok: &v}, nil
+			case 1:
+				slog.Debug("reading `result::err` payload")
+				v, err := func(r interface {
+					io.ByteReader
+					io.Reader
+				}) (string, error) {
+					var x uint32
+					var s uint8
+					for i := 0; i < 5; i++ {
+						slog.Debug("reading string length byte", "i", i)
+						b, err := r.ReadByte()
+						if err != nil {
+							if i > 0 && err == io.EOF {
+								err = io.ErrUnexpectedEOF
+							}
+							return "", fmt.Errorf("failed to read string length byte: %w", err)
+						}
+						if s == 28 && b > 0x0f {
+							return "", errors.New("string length overflows a 32-bit integer")
+						}
+						if b < 0x80 {
+							x = x | uint32(b)<<s
+							buf := make([]byte, x)
+							slog.Debug("reading string bytes", "len", x)
+							_, err = r.Read(buf)
+							if err != nil {
+								return "", fmt.Errorf("failed to read string bytes: %w", err)
+							}
+							if !utf8.Valid(buf) {
+								return string(buf), errors.New("string is not valid UTF-8")
+							}
+							return string(buf), nil
+						}
+						x |= uint32(b&0x7f) << s
+						s += 7
+					}
+					return "", errors.New("string length overflows a 32-bit integer")
+				}(r)
+				if err != nil {
+					return nil, fmt.Errorf("failed to read `result::err` value: %w", err)
+				}
+				return &wrpc.Result[string, string]{Err: &v}, nil
+			default:
+				return nil, fmt.Errorf("invalid result status byte %d", status)
+			}
+		}(r__, []uint32{0}...)
+		if err__ != nil {
+			return fmt.Errorf("failed to read result 0: %w", err__)
+		}
+		return nil
+	}); err__ != nil {
+		err__ = fmt.Errorf("failed to invoke `upload`: %w", err__)
+		return
+	}
+	return
+}
+func Resize(ctx__ context.Context, wrpc__ wrpc.Invoker, assetId string, width uint32, height uint32) (r0__ *wrpc.Result[string, string], close__ func() error, err__ error) {
+	if err__ = wrpc__.Invoke(ctx__, "wasmcloud:image-processor/resizer", "resize", func(w__ wrpc.IndexWriter, r__ wrpc.IndexReadCloser) error {
+		close__ = r__.Close
+		var buf__ bytes.Buffer
+		writes__ := make(map[uint32]func(wrpc.IndexWriter) error, 3)
+		write0__, err__ := (func(wrpc.IndexWriter) error)(nil), func(v string, w io.Writer) (err error) {
+			n := len(v)
+			if n > math.MaxUint32 {
+				return fmt.Errorf("string byte length of %d overflows a 32-bit integer", n)
+			}
+			if err = func(v int, w io.Writer) error {
+				b := make([]byte, binary.MaxVarintLen32)
+				i := binary.PutUvarint(b, uint64(v))
+				slog.Debug("writing string byte length", "len", n)
+				_, err = w.Write(b[:i])
+				return err
+			}(n, w); err != nil {
+				return fmt.Errorf("failed to write string byte length of %d: %w", n, err)
+			}
+			slog.Debug("writing string bytes")
+			_, err = w.Write([]byte(v))
+			if err != nil {
+				return fmt.Errorf("failed to write string bytes: %w", err)
+			}
+			return nil
+		}(assetId, &buf__)
+		if err__ != nil {
+			return fmt.Errorf("failed to write `asset-id` parameter: %w", err__)
 		}
 		if write0__ != nil {
 			writes__[0] = write0__
@@ -221,7 +362,7 @@ func Resize(ctx__ context.Context, wrpc__ wrpc.Invoker, body []uint8, width uint
 	}
 	return
 }
-func Serve(ctx__ context.Context, wrpc__ wrpc.Invoker, asset string) (r0__ *wrpc.Result[[]uint8, string], close__ func() error, err__ error) {
+func Serve(ctx__ context.Context, wrpc__ wrpc.Invoker, assetId string) (r0__ *wrpc.Result[[]uint8, string], close__ func() error, err__ error) {
 	if err__ = wrpc__.Invoke(ctx__, "wasmcloud:image-processor/resizer", "serve", func(w__ wrpc.IndexWriter, r__ wrpc.IndexReadCloser) error {
 		close__ = r__.Close
 		var buf__ bytes.Buffer
@@ -246,9 +387,9 @@ func Serve(ctx__ context.Context, wrpc__ wrpc.Invoker, asset string) (r0__ *wrpc
 				return fmt.Errorf("failed to write string bytes: %w", err)
 			}
 			return nil
-		}(asset, &buf__)
+		}(assetId, &buf__)
 		if err__ != nil {
-			return fmt.Errorf("failed to write `asset` parameter: %w", err__)
+			return fmt.Errorf("failed to write `asset-id` parameter: %w", err__)
 		}
 		if write0__ != nil {
 			writes__[0] = write0__

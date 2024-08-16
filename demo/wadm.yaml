@@ -16,6 +16,13 @@ spec:
       type: component
       properties:
         image: file://./components/image-analyzer/build/image_analyzer.wasm
+        config:
+          - name: analyzer_config
+            properties:
+              endpoint: "127.0.0.1:11434"
+              model: "llava"
+              prompt: "Respond only with boolean, does this image contain a boat?"
+              positive_response: "Yes"
       traits:
         - type: spreadscaler
           properties:

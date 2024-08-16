@@ -4,6 +4,7 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -20,8 +21,17 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-//go:embed static
+//go:embed dist
 var staticAssets embed.FS
+
+type uiConfig struct {
+	ApiURL string `json:"apiUrl"`
+}
+
+func assetConfig(w http.ResponseWriter, r *http.Request) {
+	cfg := uiConfig{ApiURL: "/api"}
+	json.NewEncoder(w).Encode(cfg)
+}
 
 func run() error {
 	server := &Server{
@@ -52,7 +62,7 @@ func run() error {
 		}
 	}
 
-	assets, err := fs.Sub(staticAssets, "static")
+	assets, err := fs.Sub(staticAssets, "dist")
 	if err != nil {
 		slog.Error("Couldn't find static assets", slog.Any("error", err))
 		os.Exit(1)
@@ -60,15 +70,12 @@ func run() error {
 
 	mux := http.NewServeMux()
 	tasksProxy := &TasksProxy{provider: p, tracer: otel.Tracer("tasks-proxy")}
-	analyzeProxy := &AnalyzeProxy{provider: p, tracer: otel.Tracer("analyze-proxy")}
 	processProxy := &ProcessProxy{provider: p, tracer: otel.Tracer("process-proxy")}
-	statisticsProxy := &StatisticsProxy{provider: p, tracer: otel.Tracer("statistics-proxy")}
 	serveProxy := &ServeProxy{provider: p, tracer: otel.Tracer("statistics-proxy")}
+	mux.Handle("/config.json", http.HandlerFunc(assetConfig))
 	mux.Handle("/api/tasks", tasksProxy)
 	mux.Handle("/api/tasks/{id...}", tasksProxy)
-	mux.Handle("/api/statistics", statisticsProxy)
 	mux.Handle("/api/process", processProxy)
-	mux.Handle("/api/analyze", analyzeProxy)
 	mux.Handle("/blob/{asset...}", serveProxy)
 
 	fs := http.FileServer(http.FS(assets))

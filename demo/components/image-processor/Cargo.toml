@@ -27,6 +27,7 @@ serde = { workspace = true, features = ["std", "derive"] }
 serde_json = { workspace = true, features = ["std"] }
 url = { workspace = true, features = ["serde"] }
 wit-bindgen = { workspace = true, features = ["default"] }
+uuid = { workspace = true, features = ["default", "v4"] }
 
 [workspace.dependencies]
 anyhow = { version = "1", default-features = false }
@@ -37,3 +38,5 @@ serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false }
 url = { version = "2", default-features = false }
 wit-bindgen = { version = "0.28", default-features = false }
+uuid = { version = "1.3.1", default-features = false }
+

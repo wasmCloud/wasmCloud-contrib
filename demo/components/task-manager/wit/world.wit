@@ -7,36 +7,41 @@ interface types {
 
   record operation {
     id: string,
-    category: string,
-    payload: string,
+    original-asset: string,
     created-at: string,
-    completed-at:  option<string>,
-    failure: option<string>,
-    %result: option<string>,
+
+    resized-asset: option<string>,
+    resize-error: option<string>,
+    resized-at: option<string>,
+
+    analyze-result: option<bool>,
+    analyze-error: option<string>,
+    analyzed-at: option<string>,
   }
 }
 
 interface tracker {
   use types.{operation, operation-error};
 
-  start: func(category: string, payload: string) -> result<string, operation-error>;
+  start: func(original-asset: string) -> result<string, operation-error>;
 
   get: func(
     id: string
   ) -> result<operation, operation-error>;
 
-  complete: func(
+  complete-resize: func(
     id: string,
-    outcome: string,
+    resized-asset: option<string>,
+    resize-error: option<string>
   ) -> result<_, operation-error>;
 
-  fail: func(
+  complete-analyze: func(
     id: string,
-    outcome: string,
+    detected: option<bool>,
+    analyze-error: option<string>
   ) -> result<_, operation-error>;
 
   %list: func(
-    filter: option<string>
   ) -> result<list<operation>, operation-error>;
 
   delete: func(

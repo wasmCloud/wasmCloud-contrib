@@ -1,10 +1,10 @@
 wit_bindgen::generate!({ generate_all });
 
+use crate::wasi::config::runtime::get;
 use crate::wasi::http::outgoing_handler;
 use crate::wasi::http::outgoing_handler::OutgoingRequest;
 use crate::wasi::http::types::{Fields, Scheme};
 use crate::wasi::logging::logging::{log, Level};
-use crate::wasmcloud::task_manager::tracker;
 use anyhow::{anyhow, bail, Context as _, Result};
 use base64::{engine::general_purpose, Engine as _};
 use bytes::{Bytes, BytesMut};
@@ -30,30 +30,38 @@ struct OllamaResponse {
 }
 
 impl Guest for Ollama {
-    fn is_animal(image: Vec<u8>) -> Result<bool, String> {
-        let operation = tracker::start("analyze", "some asset").map_err(|e| e.to_string())?;
+    fn detect(image: Vec<u8>) -> Result<bool, String> {
+        let endpoint = match crate::wasi::config::runtime::get("endpoint") {
+            Ok(Some(addr)) => addr,
+            Ok(None) => "127.0.0.1:11434".to_string(),
+            Err(_) => return Err("Failed to get endpoint config".to_string()),
+        };
 
-        let res = Ollama::do_is_animal(image);
-
-        match &res {
-            Ok(result) => {
-                tracker::complete(&operation, &result.to_string()).map_err(|e| e.to_string())?;
+        let prompt = match crate::wasi::config::runtime::get("prompt") {
+            Ok(Some(p)) => p,
+            Ok(None) => {
+                "Answer with true or false and nothing else. Does this image contain an animal?"
+                    .to_string()
             }
-            Err(e) => {
-                tracker::fail(&operation, e).map_err(|e| e.to_string())?;
-            }
-        }
+            Err(_) => return Err("Failed to get prompt config".to_string()),
+        };
 
-        res
-    }
-}
+        let model = match crate::wasi::config::runtime::get("model") {
+            Ok(Some(p)) => p,
+            Ok(None) => "llava".to_string(),
+            Err(_) => return Err("Failed to get model config".to_string()),
+        };
 
-impl Ollama {
-    fn do_is_animal(image: Vec<u8>) -> Result<bool, String> {
+        let positive_response = match crate::wasi::config::runtime::get("positive_response") {
+            Ok(Some(p)) => p,
+            Ok(None) => "Yes".to_string(),
+            Err(_) => return Err("Failed to get positive_response config".to_string()),
+        };
+
         let req = OutgoingRequest::new(Fields::new());
         req.set_scheme(Some(&Scheme::Http))
             .map_err(|()| "failed to set scheme")?;
-        req.set_authority(Some("127.0.0.1:11434"))
+        req.set_authority(Some(&endpoint))
             .map_err(|()| "failed to set authority")?;
         req.set_path_with_query(Some("/api/generate"))
             .map_err(|()| "failed to set path and query")?;
@@ -63,10 +71,8 @@ impl Ollama {
         let encoded_image = general_purpose::STANDARD.encode(image);
 
         let contents = OllamaRequest {
-            model: "llava".to_string(),
-            prompt:
-                "Answer with true or false and nothing else. Does this image contain an animal?"
-                    .to_string(),
+            prompt,
+            model,
             stream: false,
             images: vec![encoded_image],
         };
@@ -77,7 +83,7 @@ impl Ollama {
 
         let llm_resp: OllamaResponse = serde_json::from_slice(&resp).map_err(|e| e.to_string())?;
 
-        Ok(llm_resp.response.trim() == "Yes")
+        Ok(llm_resp.response.trim() == positive_response)
     }
 }
 

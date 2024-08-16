@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --ui-text-font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    --ui-text-line-height: 1.5;
+    --ui-text-font-weight: 400;
+
+    --ui-color-foreground: 210 40% 98%;
+    --ui-color-background: 222.2 84% 4%;
+
+    --ui-color-primary: 217.2 91.2% 59.8%;
+    --ui-color-primary-foreground: 223 100% 95%;
+    --ui-color-primary-contrast: 217.2 91.2% 59.8%;
+
+    --ui-color-border: 217.2 32.6% 17.5%;
+    --ui-color-border-contrast: 217.2 32.6% 17.5%;
+
+    --ui-color-surface: 222.2 84% 4.9%;
+    --ui-color-surface-contrast: 210 40% 98%;
+    --ui-color-border-surface: 223 86% 20%;
+
+    --ui-color-secondary: 217.2 32.6% 17.5%;
+    --ui-color-secondary-foreground: 210 40% 98%;
+    --ui-color-secondary-contrast: 217.2 32.6% 17.5%;
+
+    --ui-color-accent: 220 100% 70%;
+    --ui-color-accent-contrast: 220 40% 10%;
+  }
+
+  html {
+    font-family: var(--ui-text-font-family);
+    line-height: var(--ui-text-line-height);
+    font-weight: var(--ui-text-font-weight);
+    color: hsl(var(--ui-color-foreground));
+    background-color: hsl(var(--ui-color-background));
+
+    color-scheme: light dark;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    overflow: auto;
+  }
+
+  #root {
+    display: contents;
+  }
+
+  .light {
+    --ui-color-foreground: 210 40% 2%;
+    --ui-color-background: 222.2 84% 96%;
+
+    --ui-color-primary: 217.2 91.2% 40.2%;
+    --ui-color-primary-foreground: 223 100% 5%;
+    --ui-color-primary-contrast: 217.2 91.2% 40.2%;
+
+    --ui-color-border: 217.2 32.6% 82.5%;
+    --ui-color-border-contrast: 217.2 32.6% 82.5%;
+
+    --ui-color-surface: 222.2 84% 95.1%;
+    --ui-color-surface-contrast: 210 40% 2%;
+    --ui-color-border-surface: 223 86% 80%;
+
+    --ui-color-secondary: 217.2 32.6% 82.5%;
+    --ui-color-secondary-foreground: 210 40% 2%;
+    --ui-color-secondary-contrast: 217.2 32.6% 82.5%;
+
+    --ui-color-accent: 220 100% 30%;
+    --ui-color-accent-contrast: 220 40% 90%;
+  }
+}

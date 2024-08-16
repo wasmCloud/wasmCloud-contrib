@@ -1,10 +1,10 @@
 wit_bindgen::generate!({ generate_all });
 use crate::wasi::logging::logging::{log, Level};
-use crate::wasmcloud::task_manager::tracker;
 use bytes::Bytes;
 use exports::wasmcloud::image_processor::resizer::Guest;
 use image::ImageReader;
 use std::io::Cursor;
+use uuid::Uuid;
 use wasi::blobstore::blobstore;
 
 mod objstore;
@@ -22,22 +22,15 @@ const BUCKET_NAME: &str = "images";
 struct ImageResizer;
 
 impl Guest for ImageResizer {
-    // wrap the operation into a task
-    fn resize(body: Vec<u8>, width: u32, height: u32) -> Result<String, String> {
-        let operation = tracker::start("resize", "some asset").map_err(|e| e.to_string())?;
+    fn upload(body: Vec<u8>) -> Result<String, String> {
+        objstore::ensure_container(&BUCKET_NAME.to_string()).map_err(|e| e.to_string())?;
 
-        let res = ImageResizer::do_resize(&operation, body, width, height);
+        let asset_key = Uuid::new_v4().to_string().to_lowercase();
 
-        match &res {
-            Ok(resized) => {
-                tracker::complete(&operation, resized).map_err(|e| e.to_string())?;
-            }
-            Err(e) => {
-                tracker::fail(&operation, e).map_err(|e| e.to_string())?;
-            }
+        match objstore::write_object(Bytes::from(body.clone()), BUCKET_NAME, &asset_key) {
+            Ok(_) => Ok(asset_key),
+            Err(e) => Err(e.to_string()),
         }
-
-        res
     }
 
     fn serve(asset: String) -> Result<Vec<u8>, String> {
@@ -46,20 +39,14 @@ impl Guest for ImageResizer {
             Err(e) => Err(e.to_string()),
         }
     }
-}
 
-impl ImageResizer {
-    fn do_resize(
-        asset_key: &String,
-        body: Vec<u8>,
-        width: u32,
-        height: u32,
-    ) -> Result<String, String> {
+    fn resize(asset_key: String, width: u32, height: u32) -> Result<String, String> {
         objstore::ensure_container(&BUCKET_NAME.to_string()).map_err(|e| e.to_string())?;
 
-        let original_image_key = format!("original-{}", asset_key);
-        objstore::write_object(Bytes::from(body.clone()), BUCKET_NAME, &original_image_key)
-            .map_err(|e| e.to_string())?;
+        let body = match objstore::read_object(BUCKET_NAME, &asset_key) {
+            Ok(bytes) => bytes,
+            Err(e) => return Err(e.to_string()),
+        };
 
         let original_image = ImageReader::new(Cursor::new(body))
             .with_guessed_format()

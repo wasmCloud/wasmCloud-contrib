@@ -2,9 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/wasmCloud/provider-sdk-go"
 	wrpcnats "github.com/wrpc/wrpc/go/nats"
@@ -13,50 +13,47 @@ import (
 	tracker "github.com/wasmCloud/wasmcloud-contrib/demo/providers/http-router/bindings/wasmcloud/task_manager/tracker"
 )
 
-type Task struct {
-	Id          string `json:"id"`
-	Category    string `json:"category"`
-	Payload     string `json:"payload"`
-	CreatedAt   string `json:"created_at"`
-	Done        bool   `json:"done"`
-	Failure     bool   `json:"failure"`
-	CompletedAt string `json:"completed_at,omitempty"`
-	Result      string `json:"result,omitempty"`
+type Frame struct {
+	Error bool        `json:"error,omitempty"`
+	Data  interface{} `json:"data,omitempty"`
 }
 
-type TaskListResponse []Task
+func frameData(data interface{}, error bool) Frame {
+	return Frame{
+		Error: error,
+		Data:  data,
+	}
+}
+
+type JobCreateResponse struct {
+	Id string `json:"jobId"`
+}
+
+type JobResize struct {
+	Done     bool   `json:"done"`
+	Error    bool   `json:"error"`
+	Original string `json:"original"`
+	Resized  string `json:"resized"`
+}
+
+type JobAnalyze struct {
+	Done  bool `json:"done"`
+	Error bool `json:"error"`
+	Match bool `json:"match"`
+}
+
+type Job struct {
+	JobID       string     `json:"jobId"`
+	Resize      JobResize  `json:"resize"`
+	Analyze     JobAnalyze `json:"analyze"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CompletedAt time.Time  `json:"completed_at,omitempty"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
 
 type TasksProxy struct {
 	tracer   trace.Tracer
 	provider *provider.WasmcloudProvider
-}
-
-func (t *TasksProxy) createTask(w http.ResponseWriter, r *http.Request) {
-	ctx, span := t.tracer.Start(r.Context(), "createTask")
-	defer span.End()
-	wasmAuthority := r.Host
-
-	logger := slog.With(slog.String("authority", wasmAuthority), slog.String("method", r.Method), slog.String("path", r.URL.Path))
-	logger.Info("Received task request")
-
-	payload := "some payload"
-
-	client := wrpcnats.NewClient(t.provider.NatsConnection(), "default.demo_image_processor-task_manager")
-	resp, stop, err := tracker.Start(ctx, client, "category", payload)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error calling task handler", slog.Any("error", err))
-		return
-	}
-	defer stop()
-
-	if resp.Err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		slog.Error("error calling task handler", slog.Any("error", resp.Err))
-		return
-	}
-
-	w.Write([]byte("Got " + *resp.Ok))
 }
 
 func (t *TasksProxy) getTask(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +78,9 @@ func (t *TasksProxy) getTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(fmt.Sprintf("Got %t", resp.Ok)))
+	job := taskToJob(*resp.Ok)
+
+	json.NewEncoder(w).Encode(frameData(job, false))
 }
 
 func (t *TasksProxy) listTasks(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +88,7 @@ func (t *TasksProxy) listTasks(w http.ResponseWriter, r *http.Request) {
 	defer span.End()
 
 	client := wrpcnats.NewClient(t.provider.NatsConnection(), "default.demo_image_processor-task_manager")
-	resp, stop, err := tracker.List(ctx, client, nil)
+	resp, stop, err := tracker.List(ctx, client)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		slog.Error("error calling task handler", slog.Any("error", err))
@@ -103,41 +102,21 @@ func (t *TasksProxy) listTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tasks := TaskListResponse{}
+	taskList := []Job{}
 	for _, task := range *resp.Ok {
-		respTask := Task{
-			Id:        task.Id,
-			Category:  task.Category,
-			Payload:   task.Payload,
-			CreatedAt: task.CreatedAt,
-		}
-		if task.Result != nil {
-			respTask.Done = true
-			respTask.Result = *task.Result
-			respTask.CompletedAt = *task.CompletedAt
-		} else if task.Failure != nil {
-			respTask.Done = true
-			respTask.Result = *task.Failure
-			respTask.CompletedAt = *task.CompletedAt
-		}
-		tasks = append(tasks, respTask)
+		taskList = append(taskList, taskToJob(*task))
 	}
-	json.NewEncoder(w).Encode(tasks)
+
+	json.NewEncoder(w).Encode(frameData(taskList, false))
 }
 
 func (t *TasksProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// GET /api/tasks -> list
-	// POST /api/tasks -> create
 	// GET /api/tasks/:id -> read
 	ctx, span := t.tracer.Start(r.Context(), "ServeHTTP")
 	defer span.End()
 
 	r = r.WithContext(ctx)
-
-	if r.Method == http.MethodPost {
-		t.createTask(w, r)
-		return
-	}
 
 	if r.Method == http.MethodGet {
 		if r.PathValue("id") != "" {
@@ -147,4 +126,56 @@ func (t *TasksProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+}
+
+func taskToJob(trackerTask tracker.Operation) Job {
+	job := Job{
+		JobID:     trackerTask.Id,
+		CreatedAt: time.Now(),
+		Resize:    JobResize{Original: trackerTask.OriginalAsset},
+	}
+
+	if createdAt, err := time.Parse(time.RFC3339, trackerTask.CreatedAt); err == nil {
+		job.CreatedAt = createdAt
+	}
+
+	if trackerTask.ResizeError != nil || trackerTask.ResizedAsset != nil {
+		job.Resize.Done = true
+		if trackerTask.ResizeError != nil {
+			job.Resize.Error = true
+		}
+
+		if trackerTask.ResizedAsset != nil {
+			job.Resize.Resized = *trackerTask.ResizedAsset
+		}
+
+		if resizeTime, err := time.Parse(time.RFC3339, *trackerTask.ResizedAt); err == nil {
+			job.UpdatedAt = resizeTime
+		}
+	}
+
+	if trackerTask.AnalyzeError != nil || trackerTask.AnalyzeResult != nil {
+		job.Analyze.Done = true
+		if trackerTask.AnalyzeError != nil {
+			job.Analyze.Error = true
+		}
+
+		if trackerTask.AnalyzeResult != nil {
+			job.Analyze.Match = *trackerTask.AnalyzeResult
+		}
+
+		if analyzeTime, err := time.Parse(time.RFC3339, *trackerTask.AnalyzedAt); err == nil {
+			if job.UpdatedAt.IsZero() {
+				job.UpdatedAt = analyzeTime
+			} else {
+				if analyzeTime.After(job.UpdatedAt) {
+					job.CompletedAt = analyzeTime
+				} else {
+					job.CompletedAt = job.UpdatedAt
+				}
+			}
+		}
+	}
+
+	return job
 }

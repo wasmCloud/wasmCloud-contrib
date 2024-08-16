@@ -80,19 +80,21 @@ func (v *OperationError) WriteToIndex(w wrpc.ByteWriter) (func(wrpc.IndexWriter)
 func (v *OperationError) Error() string { return v.String() }
 
 type Operation struct {
-	Id          string
-	Category    string
-	Payload     string
-	CreatedAt   string
-	CompletedAt *string
-	Failure     *string
-	Result      *string
+	Id            string
+	OriginalAsset string
+	CreatedAt     string
+	ResizedAsset  *string
+	ResizeError   *string
+	ResizedAt     *string
+	AnalyzeResult *bool
+	AnalyzeError  *string
+	AnalyzedAt    *string
 }
 
 func (v *Operation) String() string { return "Operation" }
 
 func (v *Operation) WriteToIndex(w wrpc.ByteWriter) (func(wrpc.IndexWriter) error, error) {
-	writes := make(map[uint32]func(wrpc.IndexWriter) error, 7)
+	writes := make(map[uint32]func(wrpc.IndexWriter) error, 9)
 	slog.Debug("writing field", "name", "id")
 	write0, err := (func(wrpc.IndexWriter) error)(nil), func(v string, w io.Writer) (err error) {
 		n := len(v)
@@ -121,7 +123,7 @@ func (v *Operation) WriteToIndex(w wrpc.ByteWriter) (func(wrpc.IndexWriter) erro
 	if write0 != nil {
 		writes[0] = write0
 	}
-	slog.Debug("writing field", "name", "category")
+	slog.Debug("writing field", "name", "original-asset")
 	write1, err := (func(wrpc.IndexWriter) error)(nil), func(v string, w io.Writer) (err error) {
 		n := len(v)
 		if n > math.MaxUint32 {
@@ -142,43 +144,15 @@ func (v *Operation) WriteToIndex(w wrpc.ByteWriter) (func(wrpc.IndexWriter) erro
 			return fmt.Errorf("failed to write string bytes: %w", err)
 		}
 		return nil
-	}(v.Category, w)
+	}(v.OriginalAsset, w)
 	if err != nil {
-		return nil, fmt.Errorf("failed to write `category` field: %w", err)
+		return nil, fmt.Errorf("failed to write `original-asset` field: %w", err)
 	}
 	if write1 != nil {
 		writes[1] = write1
 	}
-	slog.Debug("writing field", "name", "payload")
-	write2, err := (func(wrpc.IndexWriter) error)(nil), func(v string, w io.Writer) (err error) {
-		n := len(v)
-		if n > math.MaxUint32 {
-			return fmt.Errorf("string byte length of %d overflows a 32-bit integer", n)
-		}
-		if err = func(v int, w io.Writer) error {
-			b := make([]byte, binary.MaxVarintLen32)
-			i := binary.PutUvarint(b, uint64(v))
-			slog.Debug("writing string byte length", "len", n)
-			_, err = w.Write(b[:i])
-			return err
-		}(n, w); err != nil {
-			return fmt.Errorf("failed to write string byte length of %d: %w", n, err)
-		}
-		slog.Debug("writing string bytes")
-		_, err = w.Write([]byte(v))
-		if err != nil {
-			return fmt.Errorf("failed to write string bytes: %w", err)
-		}
-		return nil
-	}(v.Payload, w)
-	if err != nil {
-		return nil, fmt.Errorf("failed to write `payload` field: %w", err)
-	}
-	if write2 != nil {
-		writes[2] = write2
-	}
 	slog.Debug("writing field", "name", "created-at")
-	write3, err := (func(wrpc.IndexWriter) error)(nil), func(v string, w io.Writer) (err error) {
+	write2, err := (func(wrpc.IndexWriter) error)(nil), func(v string, w io.Writer) (err error) {
 		n := len(v)
 		if n > math.MaxUint32 {
 			return fmt.Errorf("string byte length of %d overflows a 32-bit integer", n)
@@ -202,10 +176,59 @@ func (v *Operation) WriteToIndex(w wrpc.ByteWriter) (func(wrpc.IndexWriter) erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to write `created-at` field: %w", err)
 	}
+	if write2 != nil {
+		writes[2] = write2
+	}
+	slog.Debug("writing field", "name", "resized-asset")
+	write3, err := func(v *string, w interface {
+		io.ByteWriter
+		io.Writer
+	}) (func(wrpc.IndexWriter) error, error) {
+		if v == nil {
+			slog.Debug("writing `option::none` status byte")
+			if err := w.WriteByte(0); err != nil {
+				return nil, fmt.Errorf("failed to write `option::none` byte: %w", err)
+			}
+			return nil, nil
+		}
+		slog.Debug("writing `option::some` status byte")
+		if err := w.WriteByte(1); err != nil {
+			return nil, fmt.Errorf("failed to write `option::some` status byte: %w", err)
+		}
+		slog.Debug("writing `option::some` payload")
+		write, err := (func(wrpc.IndexWriter) error)(nil), func(v string, w io.Writer) (err error) {
+			n := len(v)
+			if n > math.MaxUint32 {
+				return fmt.Errorf("string byte length of %d overflows a 32-bit integer", n)
+			}
+			if err = func(v int, w io.Writer) error {
+				b := make([]byte, binary.MaxVarintLen32)
+				i := binary.PutUvarint(b, uint64(v))
+				slog.Debug("writing string byte length", "len", n)
+				_, err = w.Write(b[:i])
+				return err
+			}(n, w); err != nil {
+				return fmt.Errorf("failed to write string byte length of %d: %w", n, err)
+			}
+			slog.Debug("writing string bytes")
+			_, err = w.Write([]byte(v))
+			if err != nil {
+				return fmt.Errorf("failed to write string bytes: %w", err)
+			}
+			return nil
+		}(*v, w)
+		if err != nil {
+			return nil, fmt.Errorf("failed to write `option::some` payload: %w", err)
+		}
+		return write, nil
+	}(v.ResizedAsset, w)
+	if err != nil {
+		return nil, fmt.Errorf("failed to write `resized-asset` field: %w", err)
+	}
 	if write3 != nil {
 		writes[3] = write3
 	}
-	slog.Debug("writing field", "name", "completed-at")
+	slog.Debug("writing field", "name", "resize-error")
 	write4, err := func(v *string, w interface {
 		io.ByteWriter
 		io.Writer
@@ -247,14 +270,14 @@ func (v *Operation) WriteToIndex(w wrpc.ByteWriter) (func(wrpc.IndexWriter) erro
 			return nil, fmt.Errorf("failed to write `option::some` payload: %w", err)
 		}
 		return write, nil
-	}(v.CompletedAt, w)
+	}(v.ResizeError, w)
 	if err != nil {
-		return nil, fmt.Errorf("failed to write `completed-at` field: %w", err)
+		return nil, fmt.Errorf("failed to write `resize-error` field: %w", err)
 	}
 	if write4 != nil {
 		writes[4] = write4
 	}
-	slog.Debug("writing field", "name", "failure")
+	slog.Debug("writing field", "name", "resized-at")
 	write5, err := func(v *string, w interface {
 		io.ByteWriter
 		io.Writer
@@ -296,15 +319,51 @@ func (v *Operation) WriteToIndex(w wrpc.ByteWriter) (func(wrpc.IndexWriter) erro
 			return nil, fmt.Errorf("failed to write `option::some` payload: %w", err)
 		}
 		return write, nil
-	}(v.Failure, w)
+	}(v.ResizedAt, w)
 	if err != nil {
-		return nil, fmt.Errorf("failed to write `failure` field: %w", err)
+		return nil, fmt.Errorf("failed to write `resized-at` field: %w", err)
 	}
 	if write5 != nil {
 		writes[5] = write5
 	}
-	slog.Debug("writing field", "name", "result")
-	write6, err := func(v *string, w interface {
+	slog.Debug("writing field", "name", "analyze-result")
+	write6, err := func(v *bool, w interface {
+		io.ByteWriter
+		io.Writer
+	}) (func(wrpc.IndexWriter) error, error) {
+		if v == nil {
+			slog.Debug("writing `option::none` status byte")
+			if err := w.WriteByte(0); err != nil {
+				return nil, fmt.Errorf("failed to write `option::none` byte: %w", err)
+			}
+			return nil, nil
+		}
+		slog.Debug("writing `option::some` status byte")
+		if err := w.WriteByte(1); err != nil {
+			return nil, fmt.Errorf("failed to write `option::some` status byte: %w", err)
+		}
+		slog.Debug("writing `option::some` payload")
+		write, err := (func(wrpc.IndexWriter) error)(nil), func(v bool, w io.ByteWriter) error {
+			if !v {
+				slog.Debug("writing `false` byte")
+				return w.WriteByte(0)
+			}
+			slog.Debug("writing `true` byte")
+			return w.WriteByte(1)
+		}(*v, w)
+		if err != nil {
+			return nil, fmt.Errorf("failed to write `option::some` payload: %w", err)
+		}
+		return write, nil
+	}(v.AnalyzeResult, w)
+	if err != nil {
+		return nil, fmt.Errorf("failed to write `analyze-result` field: %w", err)
+	}
+	if write6 != nil {
+		writes[6] = write6
+	}
+	slog.Debug("writing field", "name", "analyze-error")
+	write7, err := func(v *string, w interface {
 		io.ByteWriter
 		io.Writer
 	}) (func(wrpc.IndexWriter) error, error) {
@@ -345,12 +404,61 @@ func (v *Operation) WriteToIndex(w wrpc.ByteWriter) (func(wrpc.IndexWriter) erro
 			return nil, fmt.Errorf("failed to write `option::some` payload: %w", err)
 		}
 		return write, nil
-	}(v.Result, w)
+	}(v.AnalyzeError, w)
 	if err != nil {
-		return nil, fmt.Errorf("failed to write `result` field: %w", err)
+		return nil, fmt.Errorf("failed to write `analyze-error` field: %w", err)
 	}
-	if write6 != nil {
-		writes[6] = write6
+	if write7 != nil {
+		writes[7] = write7
+	}
+	slog.Debug("writing field", "name", "analyzed-at")
+	write8, err := func(v *string, w interface {
+		io.ByteWriter
+		io.Writer
+	}) (func(wrpc.IndexWriter) error, error) {
+		if v == nil {
+			slog.Debug("writing `option::none` status byte")
+			if err := w.WriteByte(0); err != nil {
+				return nil, fmt.Errorf("failed to write `option::none` byte: %w", err)
+			}
+			return nil, nil
+		}
+		slog.Debug("writing `option::some` status byte")
+		if err := w.WriteByte(1); err != nil {
+			return nil, fmt.Errorf("failed to write `option::some` status byte: %w", err)
+		}
+		slog.Debug("writing `option::some` payload")
+		write, err := (func(wrpc.IndexWriter) error)(nil), func(v string, w io.Writer) (err error) {
+			n := len(v)
+			if n > math.MaxUint32 {
+				return fmt.Errorf("string byte length of %d overflows a 32-bit integer", n)
+			}
+			if err = func(v int, w io.Writer) error {
+				b := make([]byte, binary.MaxVarintLen32)
+				i := binary.PutUvarint(b, uint64(v))
+				slog.Debug("writing string byte length", "len", n)
+				_, err = w.Write(b[:i])
+				return err
+			}(n, w); err != nil {
+				return fmt.Errorf("failed to write string byte length of %d: %w", n, err)
+			}
+			slog.Debug("writing string bytes")
+			_, err = w.Write([]byte(v))
+			if err != nil {
+				return fmt.Errorf("failed to write string bytes: %w", err)
+			}
+			return nil
+		}(*v, w)
+		if err != nil {
+			return nil, fmt.Errorf("failed to write `option::some` payload: %w", err)
+		}
+		return write, nil
+	}(v.AnalyzedAt, w)
+	if err != nil {
+		return nil, fmt.Errorf("failed to write `analyzed-at` field: %w", err)
+	}
+	if write8 != nil {
+		writes[8] = write8
 	}
 
 	if len(writes) > 0 {

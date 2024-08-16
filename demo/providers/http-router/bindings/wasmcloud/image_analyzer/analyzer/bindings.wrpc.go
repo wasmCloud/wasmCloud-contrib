@@ -16,8 +16,8 @@ import (
 	utf8 "unicode/utf8"
 )
 
-func IsAnimal(ctx__ context.Context, wrpc__ wrpc.Invoker, image []uint8) (r0__ *wrpc.Result[bool, string], close__ func() error, err__ error) {
-	if err__ = wrpc__.Invoke(ctx__, "wasmcloud:image-analyzer/analyzer", "is-animal", func(w__ wrpc.IndexWriter, r__ wrpc.IndexReadCloser) error {
+func Detect(ctx__ context.Context, wrpc__ wrpc.Invoker, image []uint8) (r0__ *wrpc.Result[bool, string], close__ func() error, err__ error) {
+	if err__ = wrpc__.Invoke(ctx__, "wasmcloud:image-analyzer/analyzer", "detect", func(w__ wrpc.IndexWriter, r__ wrpc.IndexReadCloser) error {
 		close__ = r__.Close
 		var buf__ bytes.Buffer
 		writes__ := make(map[uint32]func(wrpc.IndexWriter) error, 1)
@@ -170,7 +170,7 @@ func IsAnimal(ctx__ context.Context, wrpc__ wrpc.Invoker, image []uint8) (r0__ *
 		}
 		return nil
 	}); err__ != nil {
-		err__ = fmt.Errorf("failed to invoke `is-animal`: %w", err__)
+		err__ = fmt.Errorf("failed to invoke `detect`: %w", err__)
 		return
 	}
 	return

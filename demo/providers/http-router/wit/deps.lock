@@ -11,6 +11,10 @@ sha512 = "da2622210a9e3eea82b99f1a5b8a44ce5443d009cb943f7bca0bf9cf4360829b289913
 sha256 = "468b4d12892fe926b8eb5d398dbf579d566c93231fa44f415440572c695b7613"
 sha512 = "e6b53a07221f1413953c9797c68f08b815fdaebf66419bbc1ea3e8b7dece73731062693634731f311a03957b268cf9cc509c518bd15e513c318aa04a8459b93a"
 
+[config]
+sha256 = "9148c06861712b69170af7b8ec37896b4104297d920fdec9f3bcc0b1eee4a5c8"
+sha512 = "25a54101620f279c835b39f56f6dbf8a92b374b6faaf6cf6aaa1ea06d8b97b9b79788cf8abd9c2ad0c11e3629dba6a2513b71f2c54b9f95027054ae54a4615b8"
+
 [filesystem]
 sha256 = "498c465cfd04587db40f970fff2185daa597d074c20b68a8bcbae558f261499b"
 sha512 = "ead452f9b7bfb88593a502ec00d76d4228003d51c40fd0408aebc32d35c94673551b00230d730873361567cc209ec218c41fb4e95bad194268592c49e7964347"
@@ -21,14 +25,14 @@ sha512 = "760695f9a25c25bf75a25b731cb21c3bda9e288e450edda823324ecbc73d5d798bbb5d
 
 [image-analyzer]
 path = "../../../components/image-analyzer/wit"
-sha256 = "bf3dafa368112763d4800674730c005404c0ac2367d5c9b77f03443824839f74"
-sha512 = "108de7b625385d5ee951e57d84136d8e99aa83ee77646994b317264725ab7ed0357f2e26332c87465c06715221549aa12d121081fd6d5e0612af9d1c51d68bbc"
-deps = ["cli", "clocks", "filesystem", "http", "io", "keyvalue", "logging", "postgres", "random", "sockets"]
+sha256 = "b5e97b6730ab3e1c89f414c8274698ed47ffd010e4ac6157e757d70b4a06ce45"
+sha512 = "62a524e613fe665255a77556831c39ce78c33421931c34f9fba88b09971b1a4c0cab9ac854eef5adbf2f8a4b898cabeafdebe51d187da24d44699b9b11466533"
+deps = ["cli", "clocks", "config", "filesystem", "http", "io", "keyvalue", "logging", "postgres", "random", "sockets"]
 
 [image-processor]
 path = "../../../components/image-processor/wit"
-sha256 = "f49bbf8b66c0fd290abdf46b5eab9b11a54b8c214c9e74bf61da4fe1f86f0f4e"
-sha512 = "4187133a40dd01acb5e5bcf2ef21fc4e6d3ffd823924e1a8a98e9d969cc7c8e474462bbfb574059d49d6dedcbe68dafad6f3a48551327e35679c6501287021ac"
+sha256 = "b90a2a4162997af220ef5f0f606d7e0f483c5fd773bbf53c2b517016bf7df72e"
+sha512 = "3c72911bcd8e081d3364fd661751da279038a9906cefb665afad9acd593ca18591cd7af24e73556bcd1f58deeb7977e527c85a2b9127a27b3b3574852cac2653"
 deps = ["cli", "clocks", "filesystem", "http", "io", "logging", "postgres", "random", "sockets"]
 
 [io]
@@ -57,8 +61,8 @@ sha512 = "5a63c1f36de0c4548e1d2297bdbededb28721cbad94ef7825c469eae29d7451c97e00b
 
 [task-manager]
 path = "../../../components/task-manager/wit"
-sha256 = "74ee1bddd6c74c721a030a202961cd11cfeb72bac37c10cd75ea5fb5d8becc14"
-sha512 = "fb7558a1e62b9d81f40eac8b4155787c859f9a21ef4b4792e277ee95a66c9a31199a32df7afbfb795ea52429a454302b88693b261a589d8a5bf64e5136232efa"
+sha256 = "6f7c4a312f952d40e1e3ba6c157528c45568a200c4ac27bf379e99fa6af8e31e"
+sha512 = "8b483879ed68585872c3ddf1206e0fdeaf4bb539b0f6852b94a6bc3744dec4a0b0835f5c1fe62b137eccc574b2cf31f69bd999d0d3a3908189d2eefc35bd7c4e"
 deps = ["cli", "clocks", "filesystem", "http", "io", "logging", "postgres", "random", "sockets"]
 
 [wrpc-http]
