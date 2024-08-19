@@ -99,6 +99,7 @@ func kubeClientWithImpersonation(role string) (clientcorev1.CoreV1Interface, err
 func main() {
 	var (
 		natsURL            = flag.String("nats-url", nats.DefaultURL, "Nats URL")
+		natsCreds          = flag.String("nats-creds", "", "NATS credentials file path.")
 		secretsBackendSeed = flag.String("backend-seed", "", "NKeys Curve Seed. Leave blank for ephemeral key, only recommended for development use")
 	)
 	flag.Parse()
@@ -107,7 +108,12 @@ func main() {
 
 	s := &kubeSecretsServer{}
 
-	nc, err := nats.Connect(*natsURL)
+	natsConnectOps := []nats.Option{}
+	if *natsCreds != "" {
+		natsConnectOps = append(natsConnectOps, nats.UserCredentials(*natsCreds))
+	}
+
+	nc, err := nats.Connect(*natsURL, natsConnectOps...)
 	if err != nil {
 		slog.Error("Couldn't setup nats client", slog.Any("error", err))
 		os.Exit(1)
