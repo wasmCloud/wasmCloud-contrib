@@ -33,6 +33,7 @@ If you are looking to run Secrets Vault Server as part of an existing Kubernetes
 
 ```shell
 helm install wasmcloud-secrets-vault oci://ghcr.io/wasmcloud/charts/secrets-vault
+```
 
 For detailed information on the available configuration options, please see the [Helm chart README][helm-chart].
 
