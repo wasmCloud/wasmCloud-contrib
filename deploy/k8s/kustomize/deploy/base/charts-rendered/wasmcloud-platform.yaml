@@ -1,0 +1,680 @@
+---
+# Source: wasmcloud-platform/charts/nats/templates/pod-disruption-budget.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app.kubernetes.io/component: nats
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/version: 2.10.19
+    helm.sh/chart: nats-1.2.3
+  name: nats
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: nats
+      app.kubernetes.io/instance: wasmcloud-platform
+      app.kubernetes.io/name: nats
+---
+# Source: wasmcloud-platform/charts/operator/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wasmcloud-operator
+  labels:
+    helm.sh/chart: operator-0.1.5
+    app.kubernetes.io/name: wasmcloud-operator
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: wasmcloud-platform/charts/nats/templates/nats-box/contexts-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/component: nats-box
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/version: 2.10.19
+    helm.sh/chart: nats-1.2.3
+  name: nats-box-contexts
+stringData:
+  default.json: |
+    {
+      "url": "nats://nats"
+    }
+type: Opaque
+---
+# Source: wasmcloud-platform/charts/nats/templates/config-map.yaml
+apiVersion: v1
+data:
+  nats.conf: |
+    {
+      "cluster": {
+        "name": "nats",
+        "no_advertise": true,
+        "port": 6222,
+        "routes": [
+          "nats://nats-0.nats-headless:6222",
+          "nats://nats-1.nats-headless:6222",
+          "nats://nats-2.nats-headless:6222"
+        ]
+      },
+      "http_port": 8222,
+      "jetstream": {
+        "domain": "default",
+        "max_file_store": 10Gi,
+        "max_memory_store": 0,
+        "store_dir": "/data"
+      },
+      "lame_duck_duration": "30s",
+      "lame_duck_grace_period": "10s",
+      "leafnodes": {
+        "no_advertise": true,
+        "port": 7422
+      },
+      "pid_file": "/var/run/nats/nats.pid",
+      "port": 4222,
+      "server_name": $SERVER_NAME,
+      "websocket": {
+        "no_tls": true,
+        "port": 4223
+      }
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: nats
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/version: 2.10.19
+    helm.sh/chart: nats-1.2.3
+  name: nats-config
+---
+# Source: wasmcloud-platform/charts/operator/templates/cluster-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: wasmcloud-operator
+  labels:
+    helm.sh/chart: operator-0.1.5
+    app.kubernetes.io/name: wasmcloud-operator
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+      - services
+      - configmaps
+      - serviceaccounts
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+      - update
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+      - update
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+      - roles
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+  - apiGroups:
+      - apiregistration.k8s.io
+    resources:
+      - apiservices
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+  - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+  - apiGroups:
+      - k8s.wasmcloud.dev
+    resources:
+      - wasmcloudhostconfigs
+      - wasmcloudhostconfigs/status
+    verbs:
+      - "*"
+---
+# Source: wasmcloud-platform/charts/operator/templates/cluster-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wasmcloud-operator
+  labels:
+    helm.sh/chart: operator-0.1.5
+    app.kubernetes.io/name: wasmcloud-operator
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: wasmcloud-operator
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: wasmcloud-operator
+    namespace: default
+---
+# Source: wasmcloud-platform/charts/operator/templates/cluster-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wasmcloud-operator-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: wasmcloud-operator
+    namespace: default
+---
+# Source: wasmcloud-platform/charts/nats/templates/headless-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: nats
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/version: 2.10.19
+    helm.sh/chart: nats-1.2.3
+  name: nats-headless
+spec:
+  clusterIP: None
+  ports:
+  - appProtocol: tcp
+    name: nats
+    port: 4222
+    targetPort: nats
+  - appProtocol: tcp
+    name: leafnodes
+    port: 7422
+    targetPort: leafnodes
+  - appProtocol: http
+    name: websocket
+    port: 4223
+    targetPort: websocket
+  - appProtocol: tcp
+    name: cluster
+    port: 6222
+    targetPort: cluster
+  - appProtocol: http
+    name: monitor
+    port: 8222
+    targetPort: monitor
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/component: nats
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/name: nats
+---
+# Source: wasmcloud-platform/charts/nats/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: nats
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/version: 2.10.19
+    helm.sh/chart: nats-1.2.3
+  name: nats
+spec:
+  ports:
+  - appProtocol: tcp
+    name: nats
+    port: 4222
+    targetPort: nats
+  - appProtocol: tcp
+    name: leafnodes
+    port: 7422
+    targetPort: leafnodes
+  - appProtocol: http
+    name: websocket
+    port: 4223
+    targetPort: websocket
+  selector:
+    app.kubernetes.io/component: nats
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/name: nats
+---
+# Source: wasmcloud-platform/charts/operator/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: wasmcloud-operator
+  labels:
+    helm.sh/chart: operator-0.1.5
+    app.kubernetes.io/name: wasmcloud-operator
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8443
+      targetPort: https
+      protocol: TCP
+      name: https
+  selector:
+    app.kubernetes.io/name: wasmcloud-operator
+    app.kubernetes.io/instance: wasmcloud-platform
+---
+# Source: wasmcloud-platform/charts/nats/templates/nats-box/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: nats-box
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/version: 2.10.19
+    helm.sh/chart: nats-1.2.3
+  name: nats-box
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: nats-box
+      app.kubernetes.io/instance: wasmcloud-platform
+      app.kubernetes.io/name: nats
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: nats-box
+        app.kubernetes.io/instance: wasmcloud-platform
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: nats
+        app.kubernetes.io/version: 2.10.19
+        helm.sh/chart: nats-1.2.3
+    spec:
+      containers:
+      - args:
+        - sh
+        - -ec
+        - trap true INT TERM; sleep infinity & wait
+        command:
+        - sh
+        - -ec
+        - |
+          work_dir="$(pwd)"
+          mkdir -p "$XDG_CONFIG_HOME/nats"
+          cd "$XDG_CONFIG_HOME/nats"
+          if ! [ -s context ]; then
+            ln -s /etc/nats-contexts context
+          fi
+          if ! [ -f context.txt ]; then
+            echo -n "default" > context.txt
+          fi
+          cd "$work_dir"
+          exec /entrypoint.sh "$@"
+        - --
+        image: natsio/nats-box:0.14.4
+        name: nats-box
+        volumeMounts:
+        - mountPath: /etc/nats-contexts
+          name: contexts
+      enableServiceLinks: false
+      volumes:
+      - name: contexts
+        secret:
+          secretName: nats-box-contexts
+---
+# Source: wasmcloud-platform/charts/operator/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wasmcloud-operator
+  labels:
+    helm.sh/chart: operator-0.1.5
+    app.kubernetes.io/name: wasmcloud-operator
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wasmcloud-operator
+      app.kubernetes.io/instance: wasmcloud-platform
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: operator-0.1.5
+        app.kubernetes.io/name: wasmcloud-operator
+        app.kubernetes.io/instance: wasmcloud-platform
+        app.kubernetes.io/version: "0.4.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: wasmcloud-operator
+      securityContext:
+        {}
+      containers:
+        - name: operator
+          securityContext:
+            {}
+          image: "ghcr.io/wasmcloud/wasmcloud-operator:0.4.0"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: RUST_LOG
+              value: info,async_nats=error
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          resources:
+            {}
+---
+# Source: wasmcloud-platform/charts/wadm/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wadm
+  labels:
+    helm.sh/chart: wadm-0.2.7
+    app.kubernetes.io/name: wadm
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/version: "v0.14.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wadm
+      app.kubernetes.io/instance: wasmcloud-platform
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: wadm-0.2.7
+        app.kubernetes.io/name: wadm
+        app.kubernetes.io/instance: wasmcloud-platform
+        app.kubernetes.io/version: "v0.14.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      securityContext:
+        {}
+      containers:
+        - name: wadm
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          image: "ghcr.io/wasmcloud/wadm:v0.15.0"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WADM_NATS_SERVER
+              value: "nats://nats-headless.default.svc.cluster.local"
+            
+          resources:
+            {}
+---
+# Source: wasmcloud-platform/charts/nats/templates/stateful-set.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/component: nats
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/version: 2.10.19
+    helm.sh/chart: nats-1.2.3
+  name: nats
+spec:
+  podManagementPolicy: Parallel
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: nats
+      app.kubernetes.io/instance: wasmcloud-platform
+      app.kubernetes.io/name: nats
+  serviceName: nats-headless
+  template:
+    metadata:
+      annotations:
+        checksum/config: 0fe5219af2a91eb9dbfd19781918f6b7832f8bd7ca03af2adef83e5ce3121c5b
+      labels:
+        app.kubernetes.io/component: nats
+        app.kubernetes.io/instance: wasmcloud-platform
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: nats
+        app.kubernetes.io/version: 2.10.19
+        helm.sh/chart: nats-1.2.3
+    spec:
+      containers:
+      - args:
+        - --config
+        - /etc/nats-config/nats.conf
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: SERVER_NAME
+          value: $(POD_NAME)
+        image: nats:2.10.19-alpine
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - nats-server
+              - -sl=ldm=/var/run/nats/nats.pid
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz?js-enabled-only=true
+            port: monitor
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: nats
+        ports:
+        - containerPort: 4222
+          name: nats
+        - containerPort: 7422
+          name: leafnodes
+        - containerPort: 4223
+          name: websocket
+        - containerPort: 6222
+          name: cluster
+        - containerPort: 8222
+          name: monitor
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz?js-server-only=true
+            port: monitor
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        startupProbe:
+          failureThreshold: 90
+          httpGet:
+            path: /healthz
+            port: monitor
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        volumeMounts:
+        - mountPath: /etc/nats-config
+          name: config
+        - mountPath: /var/run/nats
+          name: pid
+        - mountPath: /data
+          name: nats-js
+      - args:
+        - -pid
+        - /var/run/nats/nats.pid
+        - -config
+        - /etc/nats-config/nats.conf
+        image: natsio/nats-server-config-reloader:0.15.1
+        name: reloader
+        volumeMounts:
+        - mountPath: /var/run/nats
+          name: pid
+        - mountPath: /etc/nats-config
+          name: config
+      enableServiceLinks: false
+      shareProcessNamespace: true
+      volumes:
+      - configMap:
+          name: nats-config
+        name: config
+      - emptyDir: {}
+        name: pid
+  volumeClaimTemplates:
+  - metadata:
+      name: nats-js
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+---
+# Source: wasmcloud-platform/charts/nats/templates/tests/request-reply.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  labels:
+    app.kubernetes.io/component: test-request-reply
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/version: 2.10.19
+    helm.sh/chart: nats-1.2.3
+  name: nats-test-request-reply
+spec:
+  containers:
+  - args:
+    - sh
+    - -ec
+    - nats reply --echo echo & pid="$!"; sleep 1; nats request echo hi > /tmp/resp;
+      kill "$pid"; wait; grep -qF hi /tmp/resp
+    command:
+    - sh
+    - -ec
+    - |
+      work_dir="$(pwd)"
+      mkdir -p "$XDG_CONFIG_HOME/nats"
+      cd "$XDG_CONFIG_HOME/nats"
+      if ! [ -s context ]; then
+        ln -s /etc/nats-contexts context
+      fi
+      if ! [ -f context.txt ]; then
+        echo -n "default" > context.txt
+      fi
+      cd "$work_dir"
+      exec /entrypoint.sh "$@"
+    - --
+    image: natsio/nats-box:0.14.4
+    name: nats-box
+    volumeMounts:
+    - mountPath: /etc/nats-contexts
+      name: contexts
+  enableServiceLinks: false
+  restartPolicy: Never
+  volumes:
+  - name: contexts
+    secret:
+      secretName: nats-box-contexts
+---
+# Source: wasmcloud-platform/charts/operator/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "wasmcloud-operator-test-connection"
+  labels:
+    helm.sh/chart: operator-0.1.5
+    app.kubernetes.io/name: wasmcloud-operator
+    app.kubernetes.io/instance: wasmcloud-platform
+    app.kubernetes.io/version: "0.4.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: alpine
+      command: ['wget']
+      args: ['--no-check-certificate', 'https://wasmcloud-operator:8443/apis/core.oam.dev/v1beta1']
+  restartPolicy: Never

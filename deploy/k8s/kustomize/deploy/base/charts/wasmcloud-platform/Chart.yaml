@@ -1,0 +1,51 @@
+annotations:
+  license: Apache-2.0
+apiVersion: v2
+appVersion: 1.2.1
+dependencies:
+- condition: nats.enabled
+  name: nats
+  repository: https://nats-io.github.io/k8s/helm/charts/
+  tags:
+  - nats-cluster
+  version: 1.2.3
+- condition: wadm.enabled
+  name: wadm
+  repository: oci://ghcr.io/wasmcloud/charts
+  tags:
+  - wadm
+  version: 0.2.7
+- alias: operator
+  condition: operator.enabled
+  name: wasmcloud-operator
+  repository: oci://ghcr.io/wasmcloud/charts
+  tags:
+  - wasmcloud-operator
+  version: 0.1.5
+- alias: host
+  condition: host.enabled
+  name: wasmcloud-host
+  repository: oci://ghcr.io/wasmcloud/charts
+  tags:
+  - wasmcloud-host
+  version: 0.8.4
+description: wasmCloud Platform Helm Chart provides a turnkey solution, for running
+  WebAssembly applications on Kubernetes.
+home: https://github.com/wasmCloud/wasmcloud
+icon: https://github.com/wasmCloud/wasmCloud/blob/main/brand/icon/green/wasmCloud.icon-green.svg
+keywords:
+- wasmcloud
+- wasi
+- webassembly
+- wadm
+- nats
+- cncf
+kubeVersion: '>=1.24.0'
+name: wasmcloud-platform
+sources:
+- https://github.com/wasmCloud/wasmCloud
+- https://github.com/wasmCloud/wadm
+- https://github.com/nats-io/nats-server
+- https://github.com/wasmCloud/wasmcloud-operator
+type: application
+version: 0.1.0
