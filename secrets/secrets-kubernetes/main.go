@@ -12,7 +12,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
-	"github.com/wasmCloud/wasmCloud-contrib/secrets/secrets-kubernetes/pkg/secrets"
+	"github.com/wasmCloud/contrib/secrets/secrets-kubernetes/pkg/secrets"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
