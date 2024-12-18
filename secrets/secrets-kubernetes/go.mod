@@ -1,4 +1,4 @@
-module github.com/wasmCloud/wasmCloud-contrib/secrets/secrets-kubernetes
+module github.com/wasmCloud/contrib/secrets/secrets-kubernetes
 
 go 1.22.5
 

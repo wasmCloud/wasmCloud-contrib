@@ -116,7 +116,7 @@ And then in your component or provider's `properties` section you will need the 
 # ... rest of the manifest ...
 ```
 
-[helm-chart]: https://github.com/wasmCloud/wasmCloud-contrib/blob/main/secrets/secrets-vault/charts/secrets-vault/README.md
+[helm-chart]: https://github.com/wasmCloud/contrib/blob/main/secrets/secrets-vault/charts/secrets-vault/README.md
 [vault-bound-claims]: https://developer.hashicorp.com/vault/docs/auth/jwt#bound-claims
 [vault-jwks-url]: https://developer.hashicorp.com/vault/api-docs/auth/jwt#jwks_url
 [vault-jwt-auth]: https://developer.hashicorp.com/vault/docs/auth/jwt#jwt-authentication
